@@ -2,12 +2,14 @@ package com.ruimo.jobbroker.queue
 
 import com.ruimo.jobbroker.JobId
 import com.rabbitmq.client.{AMQP, Channel, DefaultConsumer, Envelope}
+import org.slf4j.{Logger, LoggerFactory}
 
 case class WaitingJobHandle(tag: String) extends AnyVal
 
 object JobQueue {
   val QueueNameDefault = "com.ruimo.jobbroker.jobqueue"
   val ExchangeDefault = "" // Equivalent to "direct"
+  val Logger: Logger = LoggerFactory.getLogger(JobQueue.getClass)
 }
 
 class JobQueue(
@@ -31,8 +33,14 @@ class JobQueue(
   def waitJob(
     onJobObtained: JobId => Unit,
     onCancel: () => Unit,
-    onError: Throwable => Unit
+    onError: (JobId, Throwable) => Unit
   ): WaitingJobHandle = {
+    def notifyError(jobId: JobId, t: Throwable): Unit = try {
+      onError(jobId, t)
+    } catch {
+      case t0: Throwable => JobQueue.Logger.error("Unexpected error in onError.", t0)
+    }
+
     channel.queueDeclare(
       queueName, /* durable = */ true, /* exclusive = */ false, /* autoDelete = */ false,
       /* arguments = */ java.util.Collections.emptyMap[String, AnyRef]()
@@ -46,8 +54,9 @@ class JobQueue(
           body: Array[Byte]
         ) {
           val deliveryTag: Long = envelope.getDeliveryTag
+          val jobId = JobId.fromByteArray(body)
           try {
-            onJobObtained(JobId.fromByteArray(body))
+            onJobObtained(jobId)
             channel.basicAck(deliveryTag, false /* multiple */)
           } catch {
             case t: Throwable =>
@@ -57,11 +66,12 @@ class JobQueue(
                   false /* multiple */ ,
                   false /* requeue */
                 )
-                onError(t)
+
+                notifyError(jobId, t)
               } catch {
                 case t2: Throwable =>
                   t2.addSuppressed(t)
-                  onError(t2)
+                  notifyError(jobId, t2)
               }
           }
         }
@@ -70,7 +80,8 @@ class JobQueue(
           try {
             onCancel()
           } catch {
-            case t: Throwable => onError(t)
+            case t: Throwable =>
+              JobQueue.Logger.error("Error while canceling worker.", t)
           }
         }
       })

@@ -35,7 +35,7 @@ class JobQueueSpec extends Specification {
           val jobHandle: WaitingJobHandle = jobQueue.waitJob(
             onJobObtained = ary => {jobObtainedCalled = true},
             onCancel = () => {onCancelCalled = true},
-            onError = t => {onErrorCalled = true}
+            onError = (jobId, t) => {onErrorCalled = true}
           )
 
           jobQueue.cancelJobWaiting(jobHandle)
@@ -50,7 +50,7 @@ class JobQueueSpec extends Specification {
       val factory = new MockConnectionFactory
       @volatile var jobObtainedCalled = false
       @volatile var onCancelCalled = false
-      @volatile var error: Option[Throwable] = None
+      @volatile var error: Option[(JobId, Throwable)] = None
       var t = new Throwable
 
       using(factory.newConnection) { conn =>
@@ -62,13 +62,13 @@ class JobQueueSpec extends Specification {
               onCancelCalled = true
               throw t
             },
-            onError = t => {error = Some(t)}
+            onError = (jobId, t) => {error = Some(jobId, t)}
           )
 
           jobQueue.cancelJobWaiting(jobHandle)
           jobObtainedCalled === false
           onCancelCalled === true
-          error === Some(t)
+          error === None
         }.get
       }.get
     }
@@ -85,7 +85,7 @@ class JobQueueSpec extends Specification {
           val jobHandle: WaitingJobHandle = jobQueue.waitJob(
             onJobObtained = jobId => {job = Some(jobId)},
             onCancel = () => {onCancelCalled = true},
-            onError = t => {onErrorCalled = true}
+            onError = (jobId, t) => {onErrorCalled = true}
           )
 
           jobQueue.submitJob(JobId(123L))
@@ -100,7 +100,7 @@ class JobQueueSpec extends Specification {
       val factory = new MockConnectionFactory
       @volatile var job: Option[JobId] = None
       @volatile var onCancelCalled = false
-      @volatile var error: Option[Throwable] = None
+      @volatile var error: Option[(JobId, Throwable)] = None
       @volatile var unexpected = false
       val t = new Throwable
 
@@ -117,13 +117,13 @@ class JobQueueSpec extends Specification {
               }
             },
             onCancel = () => {onCancelCalled = true},
-            onError = t => {error = Some(t)}
+            onError = (jobId, t) => {error = Some(jobId, t)}
           )
 
           jobQueue.submitJob(JobId(123L))
           job must be_==(Some(JobId(123L))).eventually
           onCancelCalled === false
-          error === Some(t)
+          error === Some(JobId(123L), t)
           Thread.sleep(100)
           unexpected === false
         }.get
