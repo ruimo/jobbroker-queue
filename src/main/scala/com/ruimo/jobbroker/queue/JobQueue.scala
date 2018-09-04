@@ -94,4 +94,3 @@ class JobQueue(
     channel.basicCancel(handle.tag)
   }
 }
-
