@@ -19,7 +19,7 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25"
 
 libraryDependencies += "com.github.fridujo" % "rabbitmq-mock" % "1.0.3" % Test
-libraryDependencies += "com.ruimo" %% "scoins" % "1.15" % Test
+libraryDependencies += "com.ruimo" %% "scoins" % "1.17" % Test
 libraryDependencies += "org.specs2" %% "specs2-core" % "4.3.2" % Test
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
