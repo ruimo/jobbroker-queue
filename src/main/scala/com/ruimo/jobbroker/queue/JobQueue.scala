@@ -65,6 +65,7 @@ class JobQueue(
             channel.basicAck(deliveryTag, false /* multiple */)
           } catch {
             case t: Throwable =>
+              JobQueue.Logger.error("Error in handling job request.", t)
               try {
                 channel.basicNack(
                   deliveryTag,
