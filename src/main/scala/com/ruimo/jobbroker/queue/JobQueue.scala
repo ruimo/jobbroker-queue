@@ -41,6 +41,7 @@ class JobQueue(
       case t0: Throwable => JobQueue.Logger.error("Unexpected error in onError.", t0)
     }
 
+    JobQueue.Logger.info("Declaring queue '" + queueName + "'")
     channel.queueDeclare(
       queueName, /* durable = */ true, /* exclusive = */ false, /* autoDelete = */ false,
       /* arguments = */ java.util.Collections.emptyMap[String, AnyRef]()
@@ -53,6 +54,8 @@ class JobQueue(
           properties: AMQP.BasicProperties,
           body: Array[Byte]
         ) {
+          JobQueue.Logger.info("handleDelivery called. tag: '" + consumerTag + "'")
+
           val deliveryTag: Long = envelope.getDeliveryTag
           val jobId = JobId.fromByteArray(body)
           try {
@@ -77,6 +80,7 @@ class JobQueue(
         }
 
         override def handleCancelOk(consumerTag: String) {
+          JobQueue.Logger.info("handleCancelOk called. tag: '" + consumerTag + "'")
           try {
             onCancel()
           } catch {
