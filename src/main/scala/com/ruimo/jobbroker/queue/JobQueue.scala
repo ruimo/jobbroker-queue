@@ -18,10 +18,12 @@ class JobQueue(
   val exchangeDefault: String = JobQueue.ExchangeDefault
 ) {
   def submitJob(jobId: JobId): Unit = {
+    JobQueue.Logger.info("declaring queue: '" + queueName + "'")
     channel.queueDeclare(
       queueName, /* durable = */true, /* exclusive = */false, /* autoDelete = */false,
       /* arguments = */ java.util.Collections.emptyMap[String, AnyRef]()
     )
+    JobQueue.Logger.info("publishing message(id = " + jobId + ") to queue.'")
     channel.basicPublish(
       exchangeDefault,
       queueName,
