@@ -12,7 +12,7 @@ publishTo := Some(
 resolvers += "ruimo.com" at "http://static.ruimo.com/release"
 
 libraryDependencies += "com.ruimo" %% "jobbroker-common" % "1.0"
-libraryDependencies += "com.rabbitmq" % "amqp-client" % "5.3.0"
+libraryDependencies += "com.rabbitmq" % "amqp-client" % "5.7.3"
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25"
 
